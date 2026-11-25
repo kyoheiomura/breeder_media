@@ -1,0 +1,23 @@
+slug: mihon-dachs-kennel
+name: みほんダックス犬舎
+nameKana: みほんだっくすけんしゃ
+kind: 自宅の一室
+address:
+  prefSlug: chiba
+  citySlug: sakura
+  line: 城内町1-2-3（架空）
+access: 京成佐倉駅から車で10分。駐車場は2台分。駅までの送迎は見学の予約のときに相談
+hours:
+  - days: [水, 木, 土, 日]
+    open: "10:00"
+    close: "16:00"
+hoursNote: 見学は予約制で、1日1組まで。出産の前後2週間は見学を休む
+contact:
+  url: https://example.com/mihon-dachs-kennel
+license:
+  number: 千葉県 第00-000-0001号（架空）
+  registeredAt: 2023-04-01
+  expiresAt: 2028-03-31
+  manager: 見本 はるか
+features: [見学は予約制, 1日1組まで, 駐車場, 最寄り駅まで送迎, 子ども連れの見学]
+verifiedAt: 2026-11-06

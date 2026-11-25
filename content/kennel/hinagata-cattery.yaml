@@ -1,0 +1,24 @@
+slug: hinagata-cattery
+name: ひながたキャッテリー
+nameKana: ひながたきゃってりー
+kind: 自宅の一室
+address:
+  prefSlug: kanagawa
+  citySlug: kamakura
+  line: 大町1-2-3（架空）
+access: JR横須賀線 鎌倉駅から歩いて15分。駐車場はないので、近くのコインパーキングを案内
+hours:
+  - days: [火, 金, 土]
+    open: "13:00"
+    close: "17:00"
+hoursNote: 見学は予約制で、1日1組まで。子猫が生後6週を過ぎてから受けている
+contact:
+  url: https://example.com/hinagata-cattery
+  line: https://example.com/hinagata-cattery-line
+license:
+  number: 神奈川県 第00-000-0003号（架空）
+  registeredAt: 2024-02-01
+  expiresAt: 2029-01-31
+  manager: 雛形 あや
+features: [見学は予約制, 1日1組まで, オンラインで事前相談, 動物病院と連携]
+verifiedAt: 2026-11-12

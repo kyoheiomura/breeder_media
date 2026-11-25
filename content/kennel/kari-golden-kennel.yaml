@@ -1,0 +1,24 @@
+slug: kari-golden-kennel
+name: かりゴールデン犬舎
+nameKana: かりごーるでんけんしゃ
+kind: 自宅と犬舎
+address:
+  prefSlug: nagano
+  citySlug: azumino
+  line: 穂高1-2-3（架空）
+access: JR大糸線 穂高駅から車で15分。安曇野インターから車で20分。駐車場は5台分
+hours:
+  - days: [金, 土, 日, 祝]
+    open: "09:00"
+    close: "15:00"
+hoursNote: 見学は予約制。冬のあいだ（12月〜2月）は道の状態によって日を変えることがある
+contact:
+  phone: 0263-00-0000
+  url: https://example.com/kari-golden-kennel
+license:
+  number: 長野県 第00-000-0002号（架空）
+  registeredAt: 2022-06-01
+  expiresAt: 2027-05-31
+  manager: 仮 だいち
+features: [見学は予約制, 駐車場, 運動場がある, 動物病院と連携, オンラインで事前相談]
+verifiedAt: 2026-11-10

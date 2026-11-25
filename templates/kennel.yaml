@@ -1,0 +1,26 @@
+# content/kennel/<slug>.yaml にコピーして使う。slug はファイル名と同じにする
+slug: sample-kennel
+name: 犬舎・猫舎の名前
+nameKana: けんしゃのなまえ
+kind: 自宅の一室 # 専用の犬舎／専用の猫舎／自宅の一室／自宅と犬舎／その他
+address:
+  prefSlug: tokyo # data/areas.ts にある値だけ
+  citySlug: setagaya
+  line: 町名と番地
+  building: 建物名（なければ行ごと消す）
+access: 行き方。駅からの時間や車での目安、駐車場（80字まで）
+hours: # 見学を受けている曜日と時間
+  - days: [土, 日]
+    open: "10:00"
+    close: "16:00"
+hoursNote: 見学の決まり（予約制、1日に何組まで、休む時期など。なければ行ごと消す）
+contact: # 見学の申し込みの窓口。電話・公式サイト・LINE のうち1つ以上
+  phone: 03-0000-0000
+  url: https://example.com/
+license: # 第一種動物取扱業（販売）の登録。本人に書いてもらった内容をそのまま書く
+  number: 〇〇県 第00-000-0000号
+  registeredAt: 2024-04-01
+  expiresAt: 2029-03-31 # 切れると検査で止まる。90日前から知らせる
+  manager: 動物取扱責任者の名前
+features: [見学は予約制] # data/vocab.ts の FEATURES から選ぶ
+verifiedAt: 2026-01-01 # 情報を確認した日。半年たつと検査で知らせる

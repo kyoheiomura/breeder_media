@@ -1,0 +1,274 @@
+import Image from "next/image";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { CompareFieldsList } from "@/components/CompareFieldsList";
+import { JsonLd } from "@/components/JsonLd";
+import { BreederGrid } from "@/components/BreederCard";
+import { SITE } from "@/data/site";
+import { ConcernChips } from "@/components/ConcernChips";
+import { findConcern } from "@/data/vocab";
+import { venuesOf, getAllBreeders, getBreeder } from "@/lib/content";
+import { chaptersOf, renderInterview } from "@/lib/mdx";
+import { pageMeta } from "@/lib/meta";
+import { areaOf, formatDate, formatMonth, formatYen, hoursLabel, licenseLabel, toCompareData, toSummary } from "@/lib/view";
+
+/*
+ * ブリーダーの取材記事。上から、
+ *   写真と見出し（一言・名前・場所・導入文） → 目次 → 章ごとの質問と答え
+ *   → 育て方のまとめ → 会いに行くには（場所・見学の日・価格・登録・見学の窓口）
+ * の順。記事が主役で、まとめと連絡先は読み終えたあとに置く。
+ */
+type Props = { params: Promise<{ slug: string }> };
+
+export const dynamicParams = false;
+
+export function generateStaticParams() {
+  return getAllBreeders().map((s) => ({ slug: s.slug }));
+}
+
+export async function generateMetadata({ params }: Props) {
+  const s = getBreeder((await params).slug);
+  if (!s) return {};
+  const area = areaOf(venuesOf(s)[0]);
+  return pageMeta({
+    title: `ブリーダー ${s.name}さんの取材記事（${area.label}）`,
+    description: s.lead ?? `${area.fullLabel}のブリーダー、${s.name}さんの取材記事。${s.compare.belief}`,
+    path: `/breeder/${s.slug}/`,
+    ogType: "article",
+  });
+}
+
+export default async function BreederPage({ params }: Props) {
+  const s = getBreeder((await params).slug);
+  if (!s) notFound();
+
+  const venues = venuesOf(s);
+  const main = areaOf(venues[0]);
+  const data = toCompareData(s);
+  const chapters = chaptersOf(s.body);
+  const interview = await renderInterview(s.body);
+  const concern = findConcern(s.concerns[0]);
+
+  // 「おすすめ」ではなく、同じ地域で話を聞いたブリーダーを新着順に
+  const others = getAllBreeders().filter((o) => o.slug !== s.slug);
+  const sameCity = others.filter((o) => toSummary(o).citySlugs.some((c) => data.citySlugs.includes(c)));
+  const related = (sameCity.length ? sameCity : others.filter((o) => toSummary(o).prefSlug === main.pref.slug))
+    .slice(0, 3)
+    .map(toSummary);
+
+  return (
+    <>
+      <section className="mx-3 rounded-[2rem] bg-blanket min-[768px]:mx-6 min-[768px]:rounded-[2.5rem]">
+        <Breadcrumbs
+          items={[
+            ...(concern ? [{ href: `/concern/${concern.slug}/`, label: concern.label }] : []),
+            { href: `/breeder/${s.slug}/`, label: `${s.name}さん` },
+          ]}
+        />
+        <header className="container-page grid items-center gap-x-12 gap-y-8 pt-8 pb-12 min-[900px]:grid-cols-12 min-[900px]:pt-12 min-[900px]:pb-16">
+          <div className="relative min-[900px]:col-span-5">
+            <div className="pop-scale relative aspect-[4/3] overflow-hidden rounded-[1.5rem] bg-paper min-[900px]:aspect-[4/5] min-[900px]:rounded-[2.5rem]">
+              <Image src={s.photo.src} alt={s.photo.alt} fill priority sizes="(min-width: 900px) 40vw, 100vw" className="object-cover object-[50%_30%]" />
+            </div>
+          </div>
+          <div className="min-[900px]:col-span-7">
+            <div className="pop-in flex flex-wrap items-center gap-2" style={{ "--i": 1 } as React.CSSProperties}>
+              <ConcernChips slugs={s.concerns} className="[&_.chip]:bg-paper" />
+              {/* 有料掲載は必ず明示する。表示順には影響しない */}
+              {s.listing === "paid" && <span className="badge text-sub">掲載プラン利用</span>}
+            </div>
+            <h1 className="pop-in mt-5" style={{ "--i": 2 } as React.CSSProperties}>
+              <span className="bubble block px-7 py-6 text-[clamp(1.5rem,1.15rem+1.6vw,2.375rem)] leading-[1.6] font-extrabold [text-wrap:balance] min-[768px]:px-9 min-[768px]:py-8">
+                「{s.catchphrase}」
+              </span>
+              <span className="mt-8 block pl-3 text-[1.125rem] font-bold">
+                {s.name} さん
+                <span className="sr-only">の取材記事</span>
+              </span>
+            </h1>
+            <p className="phrase pl-3 text-[0.8125rem] text-sub">
+              {venues.map((c) => c.name).join("／")}（{main.fullLabel}）／{s.compare.breeds.join("・")}
+            </p>
+            {s.lead && (
+              <p className="pop-in mt-6 pl-3 text-[0.9375rem] leading-[2.05]" style={{ "--i": 4 } as React.CSSProperties}>
+                {s.lead}
+              </p>
+            )}
+            <p className="mt-6 pl-3 text-[0.75rem] text-sub">
+              取材日 {formatDate(s.interviewedAt)}／聞き手 {s.interviewer}
+              {s.photographer && `／撮影 ${s.photographer}`}／最終更新日 {formatDate(s.updatedAt ?? s.publishedAt)}
+            </p>
+          </div>
+        </header>
+      </section>
+
+      <article aria-label={`${s.name}さんの取材記事の本文`} className="container-page">
+        <div className="mx-auto mt-8 max-w-[46rem] min-[768px]:mt-12">
+          {chapters.length > 0 && (
+            <nav aria-labelledby="toc" className="reveal card p-6 min-[768px]:p-8">
+              <p id="toc" className="text-[0.8125rem] font-bold text-sub">
+                この記事の目次
+              </p>
+              <ol className="phrase mt-4 space-y-2.5 [&_li]:[word-break:inherit]">
+                {chapters.map((c) => (
+                  <li key={c.id}>
+                    <a href={`#${c.id}`} className="flex items-baseline gap-4 font-bold hover:underline">
+                      <span className="num w-4 shrink-0">{Number(c.no)}</span>
+                      {c.title}
+                    </a>
+                  </li>
+                ))}
+                <li>
+                  <a href="#fields" className="flex items-baseline gap-4 font-bold hover:underline">
+                    <span aria-hidden="true" className="w-4 shrink-0">＋</span>
+                    {s.name}さんの育て方・会いに行くには
+                  </a>
+                </li>
+              </ol>
+            </nav>
+          )}
+
+          <div className="interview mt-14 min-[768px]:mt-20">{interview}</div>
+          <div className="clear-both" />
+        </div>
+
+        <section id="fields" aria-labelledby="fields-title" className="mx-auto max-w-[56rem] scroll-mt-24 pt-20 min-[768px]:pt-28">
+          <p aria-hidden="true" className="reveal reveal-pop label mb-2">
+            Profile
+          </p>
+          <h2 id="fields-title" className="reveal section-title mt-2">
+            {s.name}さんの育て方
+          </h2>
+          <p className="mt-3 text-[0.875rem] leading-[1.9] text-sub">見学で会える相手、受けさせている検査、お迎えの時期、迎えたあとの連絡など、会いに行く前に知っておきたいことをまとめています。</p>
+          <div className="mt-8">
+            <CompareFieldsList data={data} />
+          </div>
+        </section>
+
+        <section id="visit" aria-labelledby="visit-title" className="mx-auto max-w-[56rem] scroll-mt-24 pt-20 min-[768px]:pt-28">
+          <p aria-hidden="true" className="reveal reveal-pop label mb-2">
+            Visit
+          </p>
+          <h2 id="visit-title" className="reveal section-title mt-2">
+            {s.name}さんに会いに行くには
+          </h2>
+          <div className={`mt-8 grid gap-5 ${venues.length > 1 ? "min-[900px]:grid-cols-2" : ""}`}>
+            {venues.map((c, i) => (
+              <section key={c.slug} aria-labelledby={`venue-${c.slug}`} className="reveal rounded-[var(--radius-soft)] bg-blanket p-7 min-[768px]:p-10">
+                <h3 id={`venue-${c.slug}`} className="text-[1.25rem]">
+                  <Link href={`/kennel/${c.slug}/`} className="hover:underline">
+                    {c.name}
+                  </Link>
+                </h3>
+                <p className="mt-1 text-[0.8125rem] font-bold">{c.kind}</p>
+                <dl className="mt-5 space-y-3 text-[0.875rem]">
+                  <Row label="場所">
+                    {areaOf(c).fullLabel}
+                    {c.address.line}
+                    {c.address.building && ` ${c.address.building}`}
+                  </Row>
+                  <Row label="行き方">{c.access}</Row>
+                  <Row label="見学できる日">
+                    {hoursLabel(c)}
+                    {c.hoursNote && <span className="block text-sub">{c.hoursNote}</span>}
+                  </Row>
+                  {i === 0 && (
+                    <Row label="価格（税込）">
+                      {formatYen(s.compare.price.min)}〜{formatYen(s.compare.price.max)}
+                      {s.compare.price.note && <span className="block text-sub">{s.compare.price.note}</span>}
+                    </Row>
+                  )}
+                  <Row label="登録">
+                    {licenseLabel(c)}
+                    <span className="block text-sub">
+                      登録 {formatDate(c.license.registeredAt)}／有効期限 {formatDate(c.license.expiresAt)}／動物取扱責任者 {c.license.manager}
+                    </span>
+                  </Row>
+                </dl>
+                <div className="mt-8 flex flex-wrap gap-3">
+                  {c.contact.url && (
+                    <a href={c.contact.url} target="_blank" rel="noopener" className="btn-outline">
+                      公式サイトで見学の申し込み方を見る
+                      <span className="sr-only">（新しいタブで開きます）</span>
+                    </a>
+                  )}
+                  {c.contact.phone && (
+                    <a href={`tel:${c.contact.phone}`} className="btn-outline">
+                      電話する（{c.contact.phone}）
+                    </a>
+                  )}
+                  {c.contact.line && (
+                    <a href={c.contact.line} target="_blank" rel="noopener" className="btn-outline">
+                      LINEで問い合わせる
+                      <span className="sr-only">（新しいタブで開きます）</span>
+                    </a>
+                  )}
+                </div>
+              </section>
+            ))}
+          </div>
+          <p className="mt-4 text-xs leading-[1.9] text-sub">見学の申し込みは、それぞれの窓口で受け付けています。{SITE.name}は、子犬や子猫の販売・仲介をしていません。</p>
+        </section>
+
+        <footer className="mx-auto max-w-[56rem] pt-8">
+          <div className="space-y-1.5 text-[0.6875rem] leading-relaxed text-sub">
+            <p>掲載している情報は{formatMonth(s.verifiedAt)}に確認したものです。価格や見学の日は変わることがあります。いま子犬・子猫がいるかどうかは、それぞれの窓口で確かめてください。</p>
+            <p>子犬・子猫を迎えるときは、ブリーダーの事業所で実物を確かめ、顔を合わせて説明を受けることが法律で決められています。生後56日を過ぎるまでは引き渡しを受けられません。</p>
+            <p>検査や健康診断は、その時点の状態を確かめるものです。迎えたあとの体調で気になることは、動物病院に相談してください。</p>
+          </div>
+        </footer>
+      </article>
+
+      {related.length > 0 && (
+        <section aria-labelledby="related" className="container-page pt-20 min-[768px]:pt-28">
+          <p aria-hidden="true" className="reveal reveal-pop label mb-2">
+            More interviews
+          </p>
+          <h2 id="related" className="reveal section-title mt-2">
+            同じエリアで話を聞いたブリーダー
+          </h2>
+          <div className="mt-8">
+            <BreederGrid people={related} />
+          </div>
+        </section>
+      )}
+
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "Article",
+          headline: `${s.name}さんの取材記事「${s.catchphrase}」`,
+          datePublished: s.publishedAt.toISOString(),
+          dateModified: (s.updatedAt ?? s.publishedAt).toISOString(),
+          image: `${SITE.url}${s.photo.src}`,
+          inLanguage: "ja",
+          author: { "@type": "Organization", name: SITE.name, url: `${SITE.url}/` },
+          publisher: { "@type": "Organization", name: SITE.name, url: `${SITE.url}/` },
+          mainEntityOfPage: `${SITE.url}/breeder/${s.slug}/`,
+          about: {
+            "@type": "Person",
+            name: s.name,
+            jobTitle: "ブリーダー",
+            knowsAbout: s.compare.breeds,
+            hasCredential: s.qualifications.map((l) => ({ "@type": "EducationalOccupationalCredential", name: l })),
+            worksFor: venues.map((c) => ({
+              "@type": "LocalBusiness",
+              name: c.name,
+              url: `${SITE.url}/kennel/${c.slug}/`,
+            })),
+          },
+        }}
+      />
+    </>
+  );
+}
+
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-[5.5rem_1fr] gap-3">
+      <dt className="font-bold text-sub">{label}</dt>
+      <dd>{children}</dd>
+    </div>
+  );
+}
